@@ -54,7 +54,7 @@ async function run() {
         });
 
         app.get("/donation-request", async (req, res) => {
-            const query = {status:"pending"}
+            const query = { status: "pending" }
             const result = await donationRequestCollection.find(query).toArray()
             res.send(result)
         });
@@ -70,14 +70,42 @@ async function run() {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
             const options = { upsert: true }
-            
+
             const donationRequest = {
                 $set: {
-                    status:"inprogress"
+                    status: "inprogress"
                 }
             }
 
-            const result=await donationRequestCollection.updateOne(query,donationRequest,options)
+            const result = await donationRequestCollection.updateOne(query, donationRequest, options)
+            res.send(result)
+        });
+        app.put("/donation-request-done/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const options = { upsert: true }
+
+            const donationRequest = {
+                $set: {
+                    status: "done"
+                }
+            }
+
+            const result = await donationRequestCollection.updateOne(query, donationRequest, options)
+            res.send(result)
+        });
+        app.put("/donation-request-cancel/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const options = { upsert: true }
+
+            const donationRequest = {
+                $set: {
+                    status: "cancel"
+                }
+            }
+
+            const result = await donationRequestCollection.updateOne(query, donationRequest, options)
             res.send(result)
         })
 
