@@ -31,6 +31,7 @@ async function run() {
         // Connect the client to the server	(optional starting in v4.7)
         const database = client.db("blood_donation")
         const blogCollection = database.collection("blogs")
+        const donationRequestCollection = database.collection("donation-request")
 
 
         app.get("/blog", async (req, res) => {
@@ -42,6 +43,26 @@ async function run() {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
             const result = await blogCollection.findOne(query)
+            res.send(result)
+        });
+
+        app.post('/donation-request', async (req, res) => {
+            const donationRequest = req.body;
+            const result = await donationRequestCollection.insertOne(donationRequest)
+            res.send(result)
+
+        });
+
+        app.get("/donation-request", async (req, res) => {
+            const query = {}
+            const result = await donationRequestCollection.find(query).toArray()
+            res.send(result)
+        });
+
+        app.get("/my-donation-request", async (req, res) => {
+            const email = req.query.email;
+            const query = { email: email }
+            const result = await donationRequestCollection.find(query).toArray()
             res.send(result)
         })
         // Send a ping to confirm a successful connection
