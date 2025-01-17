@@ -54,17 +54,45 @@ async function run() {
         });
 
         app.get("/donation-request", async (req, res) => {
-            const query = {}
+            const query = {status:"pending"}
             const result = await donationRequestCollection.find(query).toArray()
             res.send(result)
         });
+
+        app.get("/donation-request-details/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await donationRequestCollection.findOne(query)
+            res.send(result)
+        });
+
+        app.put("/donation-request-details/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const options = { upsert: true }
+            
+            const donationRequest = {
+                $set: {
+                    status:"inprogress"
+                }
+            }
+
+            const result=await donationRequestCollection.updateOne(query,donationRequest,options)
+            res.send(result)
+        })
 
         app.get("/my-donation-request", async (req, res) => {
             const email = req.query.email;
             const query = { email: email }
             const result = await donationRequestCollection.find(query).toArray()
             res.send(result)
-        })
+        });
+        app.get("/my-latest-donation-request", async (req, res) => {
+            const email = req.query.email;
+            const query = { email: email }
+            const result = await donationRequestCollection.find(query).sort({ date: -1 }).limit(3).toArray()
+            res.send(result)
+        });
         // Send a ping to confirm a successful connection
         // await client.db("admin").command({ ping: 1 });
         // console.log("Pinged your deployment. You successfully connected to MongoDB!");
