@@ -32,7 +32,83 @@ async function run() {
         const database = client.db("blood_donation")
         const blogCollection = database.collection("blogs")
         const donationRequestCollection = database.collection("donation-request")
+        const userCollection = database.collection("users")
 
+        app.post("/users", async (req, res) => {
+            const user = req.body;
+
+            const query = { email: user.email }
+            const existingUser = await userCollection.findOne(query)
+            if (existingUser) {
+                return res.send({ message: "user already exists", insertedId: null })
+            }
+            const result = await userCollection.insertOne(user)
+            res.send(result)
+        });
+
+        app.get("/users", async (req, res) => {
+            const query = {}
+            const result = await userCollection.find(query).toArray()
+            res.send(result)
+        });
+
+        app.get("/users/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await userCollection.findOne(query)
+            res.send(result)
+        });
+
+        app.get("/user",async(req,res)=>{
+            const email = req.query.email;
+            const query = { email: email }
+            const result=await userCollection.findOne(query)
+            res.send(result)
+        })
+
+        app.put("/users-role/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const options = { upsert: true }
+
+            const userStatus = {
+                $set: {
+                    role: "Admin"
+                }
+            }
+
+            const result = await userCollection.updateOne(query, userStatus, options)
+            res.send(result)
+        });
+
+        app.put("/users-block/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const options = { upsert: true }
+
+            const userStatus = {
+                $set: {
+                    status: "blocked"
+                }
+            }
+
+            const result = await userCollection.updateOne(query, userStatus, options)
+            res.send(result)
+        });
+        app.put("/users-unblock/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const options = { upsert: true }
+
+            const userStatus = {
+                $set: {
+                    status: "active"
+                }
+            }
+
+            const result = await userCollection.updateOne(query, userStatus, options)
+            res.send(result)
+        });
 
         app.get("/blog", async (req, res) => {
             const cursor = blogCollection.find()
@@ -53,11 +129,19 @@ async function run() {
 
         });
 
+        app.get("/all-donation-request", async (req, res) => {
+            const query = {}
+            const result = await donationRequestCollection.find(query).toArray()
+            res.send(result)
+        });
+
         app.get("/donation-request", async (req, res) => {
             const query = { status: "pending" }
             const result = await donationRequestCollection.find(query).toArray()
             res.send(result)
         });
+
+
 
         app.get("/donation-request-details/:id", async (req, res) => {
             const id = req.params.id;
@@ -88,6 +172,20 @@ async function run() {
             const donationRequest = {
                 $set: {
                     status: "done"
+                }
+            }
+
+            const result = await donationRequestCollection.updateOne(query, donationRequest, options)
+            res.send(result)
+        });
+        app.put("/donation-request-pending/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const options = { upsert: true }
+
+            const donationRequest = {
+                $set: {
+                    status: "pending"
                 }
             }
 
