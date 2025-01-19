@@ -47,7 +47,13 @@ async function run() {
         });
 
         app.get("/users", async (req, res) => {
-            const query = {}
+            let query = {}
+            const status = req.query.status;
+            if (status) {
+                query = {
+                    status: status
+                }
+            }
             const result = await userCollection.find(query).toArray()
             res.send(result)
         });
@@ -59,10 +65,10 @@ async function run() {
             res.send(result)
         });
 
-        app.get("/user",async(req,res)=>{
+        app.get("/user", async (req, res) => {
             const email = req.query.email;
             const query = { email: email }
-            const result=await userCollection.findOne(query)
+            const result = await userCollection.findOne(query)
             res.send(result)
         })
 
@@ -74,6 +80,34 @@ async function run() {
             const userStatus = {
                 $set: {
                     role: "Admin"
+                }
+            }
+
+            const result = await userCollection.updateOne(query, userStatus, options)
+            res.send(result)
+        });
+        app.put("/users-role-volunteer/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const options = { upsert: true }
+
+            const userStatus = {
+                $set: {
+                    role: "volunteer"
+                }
+            }
+
+            const result = await userCollection.updateOne(query, userStatus, options)
+            res.send(result)
+        });
+        app.put("/users-role-user/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const options = { upsert: true }
+
+            const userStatus = {
+                $set: {
+                    role: "user"
                 }
             }
 
@@ -110,15 +144,69 @@ async function run() {
             res.send(result)
         });
 
+        app.post("/blog", async (req, res) => {
+            const blog = req.body;
+            const result = await blogCollection.insertOne(blog)
+            res.send(result)
+        });
+
+        app.get("/specific-blog", async (req, res) => {
+
+            const query = { status: "published" }
+            const result = await blogCollection.find(query).toArray()
+            res.send(result)
+        })
+
         app.get("/blog", async (req, res) => {
             const cursor = blogCollection.find()
             const result = await cursor.toArray()
             res.send(result)
         });
+
+
+
+
         app.get("/blog/:id", async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
             const result = await blogCollection.findOne(query)
+            res.send(result)
+        });
+
+        app.delete("/blog/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await blogCollection.deleteOne(query);
+            res.send(result)
+
+        })
+
+        app.put("/blog-unpublish/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const options = { upsert: true }
+
+            const blogStatus = {
+                $set: {
+                    status: "draft"
+                }
+            }
+
+            const result = await blogCollection.updateOne(query, blogStatus, options)
+            res.send(result)
+        });
+        app.put("/blog-publish/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const options = { upsert: true }
+
+            const blog = {
+                $set: {
+                    status: "published"
+                }
+            }
+
+            const result = await blogCollection.updateOne(query, blog, options)
             res.send(result)
         });
 
