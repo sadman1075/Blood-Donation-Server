@@ -33,6 +33,7 @@ async function run() {
         const blogCollection = database.collection("blogs")
         const donationRequestCollection = database.collection("donation-request")
         const userCollection = database.collection("users")
+        const donarCollection = database.collection("donar-information")
 
         app.post("/users", async (req, res) => {
             const user = req.body;
@@ -65,12 +66,34 @@ async function run() {
             res.send(result)
         });
 
+        app.put("/users/:id", async (req, res) => {
+            const id = req.params.id;
+            
+            const query = { _id: new ObjectId(id) }
+            const options = { upsert: true }
+            const userinfo = req.body;
+            const updateUserInfo = {
+                $set: {
+                    name: userinfo.name,
+                    email: userinfo.email,
+                    image: userinfo.image,
+                    blood_group: userinfo.blood_group,
+                    district:userinfo.district,
+                    upozila:userinfo.upozila
+                }
+            }
+
+            const result = await userCollection.updateOne(query, updateUserInfo, options)
+            res.send(result)
+
+        })
+
         app.get("/user", async (req, res) => {
             const email = req.query.email;
             const query = { email: email }
             const result = await userCollection.findOne(query)
             res.send(result)
-        })
+        });
 
         app.put("/users-role/:id", async (req, res) => {
             const id = req.params.id;
@@ -218,7 +241,11 @@ async function run() {
         });
 
         app.get("/all-donation-request", async (req, res) => {
-            const query = {}
+            let query = {}
+            const status = req.query.status;
+            if (status) {
+                query = { status: status }
+            }
             const result = await donationRequestCollection.find(query).toArray()
             res.send(result)
         });
@@ -237,6 +264,36 @@ async function run() {
             const result = await donationRequestCollection.findOne(query)
             res.send(result)
         });
+
+        app.put('/donation-request-update-details/:id', async (req, res) => {
+            const donationRequest = req.body;
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) }
+            const options = { upsert: true }
+
+            console.log(donationRequest.status);
+            const UpdateDonationRequest = {
+                $set: {
+                    recipient: donationRequest.recipient,
+                    district: donationRequest.district,
+                    upozila: donationRequest.upozila,
+                    hospital_name: donationRequest.hospital_name,
+                    address: donationRequest.address,
+                    blood_group: donationRequest.blood_group,
+                    date: donationRequest.date,
+                    time: donationRequest.time,
+                    message: donationRequest.message,
+                    name: donationRequest.name,
+                    email: donationRequest.email,
+                    status: donationRequest.status,
+
+                }
+            }
+            const result = await donationRequestCollection.updateOne(filter, UpdateDonationRequest, options)
+            res.send(result)
+
+        });
+
 
         app.put("/donation-request-details/:id", async (req, res) => {
             const id = req.params.id;
@@ -301,12 +358,29 @@ async function run() {
             const result = await donationRequestCollection.find(query).toArray()
             res.send(result)
         });
+
+
+
         app.get("/my-latest-donation-request", async (req, res) => {
             const email = req.query.email;
             const query = { email: email }
             const result = await donationRequestCollection.find(query).sort({ date: -1 }).limit(3).toArray()
             res.send(result)
         });
+
+        app.delete("/my-donation-request/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+
+            const result = await donationRequestCollection.deleteOne(query)
+            res.send(result)
+        });
+
+        app.post("/donar-information", async (req, res) => {
+            const donarInformation = req.body;
+            const result = await donarCollection.insertOne(donarInformation);
+            res.send(result)
+        })
         // Send a ping to confirm a successful connection
         // await client.db("admin").command({ ping: 1 });
         // console.log("Pinged your deployment. You successfully connected to MongoDB!");
