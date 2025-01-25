@@ -3,8 +3,9 @@ const cors = require("cors")
 const app = express();
 const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-
 require('dotenv').config()
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY)
+
 
 // Blood_Donation
 // i77bnUTlSB142x3G
@@ -34,6 +35,7 @@ async function run() {
         const donationRequestCollection = database.collection("donation-request")
         const userCollection = database.collection("users")
         const donarCollection = database.collection("donar-information")
+        const paymentCollection = database.collection("payments")
 
         app.post("/users", async (req, res) => {
             const user = req.body;
@@ -68,7 +70,7 @@ async function run() {
 
         app.put("/users/:id", async (req, res) => {
             const id = req.params.id;
-            
+
             const query = { _id: new ObjectId(id) }
             const options = { upsert: true }
             const userinfo = req.body;
@@ -78,8 +80,8 @@ async function run() {
                     email: userinfo.email,
                     image: userinfo.image,
                     blood_group: userinfo.blood_group,
-                    district:userinfo.district,
-                    upozila:userinfo.upozila
+                    district: userinfo.district,
+                    upozila: userinfo.upozila
                 }
             }
 
@@ -246,6 +248,7 @@ async function run() {
             if (status) {
                 query = { status: status }
             }
+
             const result = await donationRequestCollection.find(query).toArray()
             res.send(result)
         });
@@ -380,7 +383,71 @@ async function run() {
             const donarInformation = req.body;
             const result = await donarCollection.insertOne(donarInformation);
             res.send(result)
+        });
+
+        app.get("/donar-information", async (req, res) => {
+            let query = {}
+            let blood_group = req.query.blood_group;
+            if (blood_group == "A ") {
+                blood_group = "A+"
+            }
+            if (blood_group == "B ") {
+                blood_group = "B+"
+            }
+            if (blood_group == "O ") {
+                blood_group = "O+"
+            }
+            if (blood_group == "AB ") {
+                blood_group = "AB+"
+            }
+            console.log(blood_group);
+
+            const district = req.query.district;
+            const upozila = req.query.upozila;
+
+            if (blood_group) {
+                query = { blood_group: blood_group }
+            }
+            if (district) {
+                query = { district: district }
+            }
+            if (upozila) {
+                query = { upozila: upozila }
+            }
+            const result = await donarCollection.find(query).toArray()
+            res.send(result)
+
+        });
+
+        app.post("/create-payment-intent", async (req, res) => {
+            const { price } = req.body;
+            const amount = parseInt(price * 100)
+            console.log(amount);
+
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: "usd",
+                payment_method_types: ['card']
+
+            });
+
+            res.send({
+                clientSecret: paymentIntent.client_secret
+            })
+
+        });
+
+        app.post("/payment", async (req, res) => {
+            const payment = req.body;
+            const result = await paymentCollection.insertOne(payment)
+            res.send(result)
+        });
+        app.get("/payment", async (req, res) => {
+            const result = await paymentCollection.find().toArray()
+            res.send(result)
         })
+
+
         // Send a ping to confirm a successful connection
         // await client.db("admin").command({ ping: 1 });
         // console.log("Pinged your deployment. You successfully connected to MongoDB!");
