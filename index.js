@@ -37,7 +37,7 @@ async function run() {
         const donarCollection = database.collection("donar-information")
         const paymentCollection = database.collection("payments")
 
-        app.post("/users", async (req, res) => {
+        app.post("/user", async (req, res) => {
             const user = req.body;
 
             const query = { email: user.email }
