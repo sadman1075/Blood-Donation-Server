@@ -1,6 +1,7 @@
 const express = require("express")
 const cors = require("cors")
 const app = express();
+const jwt = require('jsonwebtoken')
 const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config()
@@ -36,6 +37,32 @@ async function run() {
         const userCollection = database.collection("users")
         const donarCollection = database.collection("donar-information")
         const paymentCollection = database.collection("payments")
+
+        app.post('/jwt', async (req, res) => {
+            const user = req.body;
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' })
+            res.send({ token })
+        })
+
+        const verifyToken = (req, res, next) => {
+            if (!req.headers.authorization) {
+                return res.status(401).send({ message: "forbidden access" })
+            }
+            const token = req.headers.authorization.split(" ")[1]
+            if (!token) {
+                return res.status(401).send({ message: "forbidden access" })
+
+            }
+            jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (error, decoded) => {
+                if (error) {
+                    return res.status(401).send({ message: "forbidden access" })
+                }
+                req.decoded = decoded;
+
+                next()
+            })
+
+        }
 
         app.post("/users", async (req, res) => {
             const user = req.body;
@@ -274,7 +301,6 @@ async function run() {
             const filter = { _id: new ObjectId(id) }
             const options = { upsert: true }
 
-            console.log(donationRequest.status);
             const UpdateDonationRequest = {
                 $set: {
                     recipient: donationRequest.recipient,
@@ -362,6 +388,12 @@ async function run() {
             res.send(result)
         });
 
+        app.get("/latest-donation-request",async(req,res)=>{
+            const query={}
+            const result=await donationRequestCollection.find(query).sort({date:-1}).limit(3).toArray()
+            res.send(result)
+        })
+
 
 
         app.get("/my-latest-donation-request", async (req, res) => {
@@ -400,7 +432,6 @@ async function run() {
             if (blood_group == "AB ") {
                 blood_group = "AB+"
             }
-            console.log(blood_group);
 
             const district = req.query.district;
             const upozila = req.query.upozila;
@@ -422,7 +453,6 @@ async function run() {
         app.post("/create-payment-intent", async (req, res) => {
             const { price } = req.body;
             const amount = parseInt(price * 100)
-            console.log(amount);
 
             const paymentIntent = await stripe.paymentIntents.create({
                 amount: amount,
@@ -442,7 +472,7 @@ async function run() {
             const result = await paymentCollection.insertOne(payment)
             res.send(result)
         });
-        app.get("/payment", async (req, res) => {
+        app.get("/payment", verifyToken, async (req, res) => {
             const result = await paymentCollection.find().toArray()
             res.send(result)
         })
